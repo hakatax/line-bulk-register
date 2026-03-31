@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案件一括登録</title>
+<script charset="utf-8" src="https://static.line-sdn.net/liff/edge/2/sdk.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #f5f5f5; color: #333; }
+.container { max-width: 480px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 18px; text-align: center; padding: 12px 0; color: #06c755; }
+.info-bar { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 14px; border-left: 4px solid #06c755; }
+.info-bar .label { color: #888; font-size: 12px; }
+.info-bar .value { font-weight: bold; margin-top: 2px; }
+
+/* カレンダー */
+.cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.cal-header button { background: #06c755; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 14px; cursor: pointer; }
+.cal-month { font-size: 16px; font-weight: bold; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 12px; }
+.cal-day-label { text-align: center; font-size: 12px; color: #888; padding: 4px; }
+.cal-day-label:first-child { color: #e55; }
+.cal-day-label:last-child { color: #55e; }
+.cal-day { text-align: center; padding: 10px 4px; border-radius: 8px; font-size: 14px; cursor: pointer; background: #fff; border: 1px solid #eee; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+.cal-day:hover { background: #e0f5e0; }
+.cal-day.selected { background: #06c755; color: #fff; border-color: #06c755; font-weight: bold; }
+.cal-day.empty { background: transparent; border: none; cursor: default; }
+.cal-day.today { border-color: #06c755; }
+.selected-count { text-align: center; font-size: 14px; margin: 8px 0; color: #666; }
+.selected-dates { font-size: 13px; color: #555; background: #fff; border-radius: 8px; padding: 12px; margin: 8px 0; max-height: 120px; overflow-y: auto; }
+.submit-btn { width: 100%; padding: 16px; background: #06c755; color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 12px; }
+.submit-btn:disabled { background: #ccc; }
+.close-btn { width: 100%; padding: 12px; background: #fff; color: #666; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 8px; }
+
+/* 結果 */
+.result { text-align: center; padding: 32px 16px; }
+.result .icon { font-size: 48px; margin-bottom: 16px; }
+.result .message { font-size: 16px; margin-bottom: 8px; }
+.result .detail { font-size: 14px; color: #666; }
+.loading { text-align: center; padding: 32px; }
+.spinner { display: inline-block; width: 40px; height: 40px; border: 4px solid #ddd; border-top-color: #06c755; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-msg { text-align: center; padding: 32px; color: #e55; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>案件一括登録</h1>
+
+  <!-- 案件情報表示 -->
+  <div class="info-bar">
+    <div class="label">取引先 / 案件種別</div>
+    <div class="value" id="projectInfo">読み込み中...</div>
+  </div>
+
+  <!-- カレンダー画面 -->
+  <div id="calendarArea">
+    <div class="cal-header">
+      <button onclick="changeMonth(-1)">◀ 前月</button>
+      <span id="calMonth" class="cal-month"></span>
+      <button onclick="changeMonth(1)">次月 ▶</button>
+    </div>
+    <div id="calendar" class="cal-grid"></div>
+    <div id="selectedCount" class="selected-count">0日選択中</div>
+    <div id="selectedDates" class="selected-dates" style="display:none;"></div>
+    <button id="submitBtn" class="submit-btn" disabled onclick="submitDates()">登録する</button>
+    <button class="close-btn" onclick="closeLiff()">閉じる</button>
+  </div>
+
+  <!-- 結果画面 -->
+  <div id="resultArea" style="display:none;"></div>
+</div>
+
+<script>
+// URLパラメータから案件情報を取得
+var urlParams = new URLSearchParams(window.location.search);
+var shortName = urlParams.get('shortName') || '';
+var projectName = urlParams.get('projectName') || '';
+var price = urlParams.get('price') || '0';
+var gasUrl = urlParams.get('gasUrl') || '';
+
+// 状態管理
+var selectedDates = [];
+var currentYear, currentMonth;
+
+// 初期化
+window.onload = function() {
+  if (!shortName || !projectName || !gasUrl) {
+    document.getElementById('projectInfo').textContent = 'エラー：案件情報がありません';
+    document.getElementById('calendarArea').style.display = 'none';
+    return;
+  }
+  document.getElementById('projectInfo').textContent = shortName + ' / ' + projectName + '（' + Number(price).toLocaleString() + '円）';
+  var now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth();
+  renderCalendar();
+};
+
+// カレンダー描画
+function renderCalendar() {
+  var grid = document.getElementById('calendar');
+  grid.innerHTML = '';
+  document.getElementById('calMonth').textContent = currentYear + '年' + (currentMonth + 1) + '月';
+
+  var dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
+  dayLabels.forEach(function(d) {
+    var el = document.createElement('div');
+    el.className = 'cal-day-label';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  var firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  var daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  var today = new Date();
+
+  for (var i = 0; i < firstDay; i++) {
+    var el = document.createElement('div');
+    el.className = 'cal-day empty';
+    grid.appendChild(el);
+  }
+
+  for (var d = 1; d <= daysInMonth; d++) {
+    var el = document.createElement('div');
+    el.className = 'cal-day';
+    el.textContent = d;
+    var dateStr = currentYear + '-' + String(currentMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+
+    if (today.getFullYear() === currentYear && today.getMonth() === currentMonth && today.getDate() === d) {
+      el.classList.add('today');
+    }
+    if (selectedDates.includes(dateStr)) {
+      el.classList.add('selected');
+    }
+    (function(ds, element) {
+      element.onclick = function() { toggleDate(ds, element); };
+    })(dateStr, el);
+    grid.appendChild(el);
+  }
+  updateSelectedDisplay();
+}
+
+// 日付の選択/解除
+function toggleDate(dateStr, el) {
+  var idx = selectedDates.indexOf(dateStr);
+  if (idx >= 0) {
+    selectedDates.splice(idx, 1);
+    el.classList.remove('selected');
+  } else {
+    selectedDates.push(dateStr);
+    el.classList.add('selected');
+  }
+  selectedDates.sort();
+  updateSelectedDisplay();
+}
+
+// 選択状態の表示更新
+function updateSelectedDisplay() {
+  document.getElementById('selectedCount').textContent = selectedDates.length + '日選択中';
+  document.getElementById('submitBtn').disabled = selectedDates.length === 0;
+
+  var datesEl = document.getElementById('selectedDates');
+  if (selectedDates.length > 0) {
+    datesEl.style.display = 'block';
+    datesEl.innerHTML = selectedDates.map(function(d) {
+      var parts = d.split('-');
+      return parseInt(parts[1]) + '/' + parseInt(parts[2]);
+    }).join('、');
+  } else {
+    datesEl.style.display = 'none';
+  }
+}
+
+// 月の切り替え
+function changeMonth(diff) {
+  currentMonth += diff;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  renderCalendar();
+}
+
+// GAS Web APIを呼んで一括登録
+function submitDates() {
+  if (selectedDates.length === 0) return;
+  if (!confirm(shortName + ' / ' + projectName + '\n' + selectedDates.length + '件の予定を登録します。\nよろしいですか？')) return;
+
+  document.getElementById('calendarArea').style.display = 'none';
+  var resultArea = document.getElementById('resultArea');
+  resultArea.style.display = 'block';
+  resultArea.innerHTML = '<div class="loading"><div class="spinner"></div><p>カレンダーに登録中...</p></div>';
+
+  var apiUrl = gasUrl + '?action=bulkRegister'
+    + '&shortName=' + encodeURIComponent(shortName)
+    + '&projectName=' + encodeURIComponent(projectName)
+    + '&dates=' + encodeURIComponent(selectedDates.join(','));
+
+  fetch(apiUrl)
+    .then(function(response) { return response.json(); })
+    .then(function(result) {
+      if (result.success) {
+        resultArea.innerHTML = '<div class="result">'
+          + '<div class="icon">✅</div>'
+          + '<div class="message">' + result.count + '件の予定を登録しました！</div>'
+          + '<div class="detail">' + shortName + ' / ' + projectName + '</div>'
+          + '<br><button class="submit-btn" onclick="resetCalendar()">続けて登録</button>'
+          + '<button class="close-btn" onclick="closeLiff()">閉じる</button>'
+          + '</div>';
+      } else {
+        resultArea.innerHTML = '<div class="result">'
+          + '<div class="icon">❌</div>'
+          + '<div class="message">エラーが発生しました</div>'
+          + '<div class="detail">' + (result.message || '不明なエラー') + '</div>'
+          + '<br><button class="close-btn" onclick="resetCalendar()">戻る</button>'
+          + '</div>';
+      }
+    })
+    .catch(function(err) {
+      resultArea.innerHTML = '<div class="result">'
+        + '<div class="icon">❌</div>'
+        + '<div class="message">通信エラーが発生しました</div>'
+        + '<div class="detail">' + err.message + '</div>'
+        + '<br><button class="close-btn" onclick="resetCalendar()">戻る</button>'
+        + '</div>';
+    });
+}
+
+// カレンダーに戻る
+function resetCalendar() {
+  selectedDates = [];
+  document.getElementById('resultArea').style.display = 'none';
+  document.getElementById('calendarArea').style.display = 'block';
+  renderCalendar();
+}
+
+// LIFFを閉じる
+function closeLiff() {
+  try {
+    liff.closeWindow();
+  } catch(e) {
+    window.close();
+  }
+}
+</script>
+</body>
+</html>
