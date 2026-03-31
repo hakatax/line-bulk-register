@@ -102,7 +102,14 @@ window.onload = function() {
   var now = new Date();
   currentYear = now.getFullYear();
   currentMonth = now.getMonth();
-  renderCalendar();
+
+  // LIFF初期化
+  liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
+    renderCalendar();
+  }).catch(function(err) {
+    // LIFF初期化失敗してもカレンダーは表示する
+    renderCalendar();
+  });
 };
 
 // カレンダー描画
@@ -207,13 +214,28 @@ function submitDates() {
     .then(function(response) { return response.json(); })
     .then(function(result) {
       if (result.success) {
+        // 選択日付の表示用テキストを作成
+        var dateLabels = selectedDates.map(function(d) {
+          var parts = d.split('-');
+          return parseInt(parts[1]) + '/' + parseInt(parts[2]);
+        }).join('、');
+
         resultArea.innerHTML = '<div class="result">'
           + '<div class="icon">✅</div>'
           + '<div class="message">' + result.count + '件の予定を登録しました！</div>'
           + '<div class="detail">' + shortName + ' / ' + projectName + '</div>'
           + '<br><button class="submit-btn" onclick="resetCalendar()">続けて登録</button>'
-          + '<button class="close-btn" onclick="closeLiff()">閉じる</button>'
+          + '<button class="close-btn" onclick="sendCompleteAndClose()">閉じる</button>'
           + '</div>';
+
+        // 完了情報を保存（閉じるボタンで使用）
+        window.lastRegistration = {
+          shortName: shortName,
+          projectName: projectName,
+          price: price,
+          dates: dateLabels,
+          count: result.count
+        };
       } else {
         resultArea.innerHTML = '<div class="result">'
           + '<div class="icon">❌</div>'
@@ -239,6 +261,24 @@ function resetCalendar() {
   document.getElementById('resultArea').style.display = 'none';
   document.getElementById('calendarArea').style.display = 'block';
   renderCalendar();
+}
+
+// 完了メッセージをLINEトークに送信してからLIFFを閉じる
+function sendCompleteAndClose() {
+  var reg = window.lastRegistration;
+  if (reg && liff.isLoggedIn && liff.isLoggedIn()) {
+    var messageText = '一括登録完了:' + reg.shortName + ':' + reg.projectName + ':' + reg.price + ':' + reg.dates + ':' + reg.count;
+    liff.sendMessages([{
+      type: 'text',
+      text: messageText
+    }]).then(function() {
+      liff.closeWindow();
+    }).catch(function() {
+      liff.closeWindow();
+    });
+  } else {
+    closeLiff();
+  }
 }
 
 // LIFFを閉じる
