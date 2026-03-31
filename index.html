@@ -73,8 +73,15 @@ h1 { font-size: 18px; text-align: center; padding: 12px 0; color: #06c755; }
 </div>
 
 <script>
-// URLパラメータから案件情報を取得
-var urlParams = new URLSearchParams(window.location.search);
+// URLパラメータから案件情報を取得（LIFF経由の場合はliff.stateから復元）
+var rawSearch = window.location.search;
+if (rawSearch.indexOf('liff.state') >= 0) {
+  var liffState = new URLSearchParams(rawSearch).get('liff.state');
+  if (liffState) {
+    rawSearch = liffState;
+  }
+}
+var urlParams = new URLSearchParams(rawSearch);
 var shortName = urlParams.get('shortName') || '';
 var projectName = urlParams.get('projectName') || '';
 var price = urlParams.get('price') || '0';
