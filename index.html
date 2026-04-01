@@ -110,6 +110,7 @@ window.onload = function() {
     window.liffReady = true;
   }).catch(function(err) {
     window.liffReady = false;
+    alert('LIFF初期化エラー: ' + err.message);
   });
 };
 
