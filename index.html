@@ -102,14 +102,12 @@ window.onload = function() {
   var now = new Date();
   currentYear = now.getFullYear();
   currentMonth = now.getMonth();
+  renderCalendar();
 
-  // LIFF初期化
-  liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
-    renderCalendar();
-  }).catch(function(err) {
-    // LIFF初期化失敗してもカレンダーは表示する
-    renderCalendar();
-  });
+  // LIFF初期化（カレンダー表示後にバックグラウンドで実行）
+  try {
+    liff.init({ liffId: '2009635998-soccgFA4' }).catch(function(err) {});
+  } catch(e) {}
 };
 
 // カレンダー描画
