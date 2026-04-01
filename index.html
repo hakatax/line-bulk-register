@@ -105,9 +105,12 @@ window.onload = function() {
   renderCalendar();
 
   // LIFF初期化（カレンダー表示後にバックグラウンドで実行）
-  try {
-    liff.init({ liffId: '2009635998-soccgFA4' }).catch(function(err) {});
-  } catch(e) {}
+  window.liffReady = false;
+  liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
+    window.liffReady = true;
+  }).catch(function(err) {
+    window.liffReady = false;
+  });
 };
 
 // カレンダー描画
@@ -264,7 +267,7 @@ function resetCalendar() {
 // 完了メッセージをLINEトークに送信してからLIFFを閉じる
 function sendCompleteAndClose() {
   var reg = window.lastRegistration;
-  if (reg && liff.isLoggedIn && liff.isLoggedIn()) {
+  if (reg && window.liffReady) {
     var messageText = '一括登録完了:' + reg.shortName + ':' + reg.projectName + ':' + reg.price + ':' + reg.dates + ':' + reg.count;
     liff.sendMessages([{
       type: 'text',
