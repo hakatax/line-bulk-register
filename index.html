@@ -267,27 +267,32 @@ function resetCalendar() {
 // 完了メッセージをLINEトークに送信してからLIFFを閉じる
 function sendCompleteAndClose() {
   var reg = window.lastRegistration;
-  if (reg && window.liffReady) {
+  if (reg && window.liffReady && liff.isInClient()) {
     var messageText = '一括登録完了:' + reg.shortName + ':' + reg.projectName + ':' + reg.price + ':' + reg.dates + ':' + reg.count;
     liff.sendMessages([{
       type: 'text',
       text: messageText
     }]).then(function() {
       liff.closeWindow();
-    }).catch(function() {
+    }).catch(function(err) {
+      alert('メッセージ送信に失敗しました: ' + err.message);
       liff.closeWindow();
     });
+  } else if (window.liffReady && liff.isInClient()) {
+    liff.closeWindow();
   } else {
-    closeLiff();
+    alert('LIFF初期化状態: ' + window.liffReady + '\nLINE内: ' + (typeof liff !== 'undefined' && liff.isInClient ? liff.isInClient() : '不明'));
+    try { liff.closeWindow(); } catch(e) { window.close(); }
   }
 }
 
 // LIFFを閉じる
 function closeLiff() {
-  try {
+  if (window.liffReady && liff.isInClient()) {
     liff.closeWindow();
-  } catch(e) {
-    window.close();
+  } else {
+    alert('LIFF初期化状態: ' + window.liffReady);
+    try { liff.closeWindow(); } catch(e) { window.close(); }
   }
 }
 </script>
