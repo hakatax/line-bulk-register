@@ -95,8 +95,10 @@ var currentYear, currentMonth;
 window.liffReady = false;
 liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
   window.liffReady = true;
+  alert('LIFF初期化成功！ isInClient=' + liff.isInClient());
 }).catch(function(err) {
   window.liffReady = false;
+  alert('LIFF初期化失敗: ' + err.code + ' ' + err.message);
 });
 
 // ★ステップ3: ページ読み込み完了後にカレンダーを表示
