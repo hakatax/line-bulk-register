@@ -91,6 +91,14 @@ var gasUrl = urlParams.get('gasUrl') || '';
 var selectedDates = [];
 var currentYear, currentMonth;
 
+// LIFF初期化（ページ読み込み直後に最優先で実行）
+window.liffReady = false;
+liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
+  window.liffReady = true;
+}).catch(function(err) {
+  window.liffReady = false;
+});
+
 // 初期化
 window.onload = function() {
   if (!shortName || !projectName || !gasUrl) {
@@ -103,15 +111,6 @@ window.onload = function() {
   currentYear = now.getFullYear();
   currentMonth = now.getMonth();
   renderCalendar();
-
-  // LIFF初期化（カレンダー表示後にバックグラウンドで実行）
-  window.liffReady = false;
-  liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
-    window.liffReady = true;
-  }).catch(function(err) {
-    window.liffReady = false;
-    alert('LIFF初期化エラー: ' + err.message);
-  });
 };
 
 // カレンダー描画
@@ -305,12 +304,7 @@ function doSendAndClose(reg) {
 
 // LIFFを閉じる
 function closeLiff() {
-  if (window.liffReady && liff.isInClient()) {
-    liff.closeWindow();
-  } else {
-    alert('LIFF初期化状態: ' + window.liffReady);
-    try { liff.closeWindow(); } catch(e) { window.close(); }
-  }
+  try { liff.closeWindow(); } catch(e) { window.close(); }
 }
 </script>
 </body>
