@@ -73,7 +73,7 @@ h1 { font-size: 18px; text-align: center; padding: 12px 0; color: #06c755; }
 </div>
 
 <script>
-// URLパラメータから案件情報を取得（LIFF経由の場合はliff.stateから復元）
+// ★ステップ1: URLパラメータを最初に取得・保存する（liff.initより前に！）
 var rawSearch = window.location.search;
 if (rawSearch.indexOf('liff.state') >= 0) {
   var liffState = new URLSearchParams(rawSearch).get('liff.state');
@@ -91,7 +91,7 @@ var gasUrl = urlParams.get('gasUrl') || '';
 var selectedDates = [];
 var currentYear, currentMonth;
 
-// LIFF初期化（ページ読み込み直後に最優先で実行）
+// ★ステップ2: URLパラメータ保存後にLIFF初期化を実行
 window.liffReady = false;
 liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
   window.liffReady = true;
@@ -99,7 +99,7 @@ liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
   window.liffReady = false;
 });
 
-// 初期化
+// ★ステップ3: ページ読み込み完了後にカレンダーを表示
 window.onload = function() {
   if (!shortName || !projectName || !gasUrl) {
     document.getElementById('projectInfo').textContent = 'エラー：案件情報がありません';
@@ -215,7 +215,6 @@ function submitDates() {
     .then(function(response) { return response.json(); })
     .then(function(result) {
       if (result.success) {
-        // 選択日付の表示用テキストを作成
         var dateLabels = selectedDates.map(function(d) {
           var parts = d.split('-');
           return parseInt(parts[1]) + '/' + parseInt(parts[2]);
@@ -229,7 +228,6 @@ function submitDates() {
           + '<button class="close-btn" onclick="sendCompleteAndClose()">閉じる</button>'
           + '</div>';
 
-        // 完了情報を保存（閉じるボタンで使用）
         window.lastRegistration = {
           shortName: shortName,
           projectName: projectName,
@@ -269,7 +267,6 @@ function sendCompleteAndClose() {
   var reg = window.lastRegistration;
   if (!reg) { closeLiff(); return; }
 
-  // LIFF初期化がまだなら待つ
   if (!window.liffReady) {
     document.getElementById('resultArea').innerHTML = '<div class="loading"><div class="spinner"></div><p>送信準備中...</p></div>';
     var waitCount = 0;
@@ -280,8 +277,8 @@ function sendCompleteAndClose() {
         doSendAndClose(reg);
       } else if (waitCount > 30) {
         clearInterval(waitTimer);
-        alert('LIFF接続がタイムアウトしました');
-        closeLiff();
+        alert('LIFF接続がタイムアウトしました。画面を閉じてLINEで「メニュー」と入力してください。');
+        try { liff.closeWindow(); } catch(e) { window.close(); }
       }
     }, 500);
     return;
@@ -298,7 +295,7 @@ function doSendAndClose(reg) {
     liff.closeWindow();
   }).catch(function(err) {
     alert('送信エラー: ' + err.message);
-    liff.closeWindow();
+    try { liff.closeWindow(); } catch(e) { window.close(); }
   });
 }
 
