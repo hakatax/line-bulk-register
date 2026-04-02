@@ -91,17 +91,9 @@ var gasUrl = urlParams.get('gasUrl') || '';
 var selectedDates = [];
 var currentYear, currentMonth;
 
-// ★ステップ2: URLパラメータ保存後にLIFF初期化を実行
+// ★ステップ2: まずカレンダーを表示する（LIFF初期化より先）
 window.liffReady = false;
-liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
-  window.liffReady = true;
-  alert('LIFF初期化成功！ isInClient=' + liff.isInClient());
-}).catch(function(err) {
-  window.liffReady = false;
-  alert('LIFF初期化失敗: ' + err.code + ' ' + err.message);
-});
 
-// ★ステップ3: ページ読み込み完了後にカレンダーを表示
 window.onload = function() {
   if (!shortName || !projectName || !gasUrl) {
     document.getElementById('projectInfo').textContent = 'エラー：案件情報がありません';
@@ -113,6 +105,17 @@ window.onload = function() {
   currentYear = now.getFullYear();
   currentMonth = now.getMonth();
   renderCalendar();
+
+  // ★ステップ3: カレンダー表示後、3秒待ってからLIFF初期化
+  setTimeout(function() {
+    liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
+      window.liffReady = true;
+      alert('LIFF初期化成功！');
+    }).catch(function(err) {
+      window.liffReady = false;
+      alert('LIFF初期化失敗: ' + err.code + ' ' + err.message);
+    });
+  }, 3000);
 };
 
 // カレンダー描画
