@@ -1,10 +1,10 @@
 <!DOCTYPE html>
+
 <html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>案件一括登録</title>
-<script charset="utf-8" src="https://static.line-sdn.net/liff/edge/2/sdk.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #f5f5f5; color: #333; }
@@ -43,18 +43,21 @@ h1 { font-size: 18px; text-align: center; padding: 12px 0; color: #06c755; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .error-msg { text-align: center; padding: 32px; color: #e55; }
 </style>
+
 </head>
 <body>
 <div class="container">
   <h1>案件一括登録</h1>
 
   <!-- 案件情報表示 -->
+
   <div class="info-bar">
     <div class="label">取引先 / 案件種別</div>
     <div class="value" id="projectInfo">読み込み中...</div>
   </div>
 
   <!-- カレンダー画面 -->
+
   <div id="calendarArea">
     <div class="cal-header">
       <button onclick="changeMonth(-1)">◀ 前月</button>
@@ -65,15 +68,16 @@ h1 { font-size: 18px; text-align: center; padding: 12px 0; color: #06c755; }
     <div id="selectedCount" class="selected-count">0日選択中</div>
     <div id="selectedDates" class="selected-dates" style="display:none;"></div>
     <button id="submitBtn" class="submit-btn" disabled onclick="submitDates()">登録する</button>
-    <button class="close-btn" onclick="closeLiff()">閉じる</button>
+    <button class="close-btn" onclick="closePage()">閉じる</button>
   </div>
 
   <!-- 結果画面 -->
+
   <div id="resultArea" style="display:none;"></div>
 </div>
 
 <script>
-// ★ステップ1: URLパラメータを最初に取得・保存する（liff.initより前に！）
+// URLパラメータから案件情報を取得（LIFF経由の場合はliff.stateから復元）
 var rawSearch = window.location.search;
 if (rawSearch.indexOf('liff.state') >= 0) {
   var liffState = new URLSearchParams(rawSearch).get('liff.state');
@@ -91,17 +95,7 @@ var gasUrl = urlParams.get('gasUrl') || '';
 var selectedDates = [];
 var currentYear, currentMonth;
 
-// ★ステップ2: URLパラメータ保存後にLIFF初期化を実行
-window.liffReady = false;
-liff.init({ liffId: '2009635998-soccgFA4' }).then(function() {
-  window.liffReady = true;
-  alert('LIFF初期化成功！');
-}).catch(function(err) {
-  window.liffReady = false;
-  alert('LIFF初期化失敗: ' + err.code + ' ' + err.message);
-});
-
-// ★ステップ3: ページ読み込み完了後にカレンダーを表示
+// 初期化
 window.onload = function() {
   if (!shortName || !projectName || !gasUrl) {
     document.getElementById('projectInfo').textContent = 'エラー：案件情報がありません';
@@ -225,18 +219,10 @@ function submitDates() {
         resultArea.innerHTML = '<div class="result">'
           + '<div class="icon">✅</div>'
           + '<div class="message">' + result.count + '件の予定を登録しました！</div>'
-          + '<div class="detail">' + shortName + ' / ' + projectName + '</div>'
+          + '<div class="detail">' + shortName + ' / ' + projectName + '<br>' + dateLabels + '</div>'
           + '<br><button class="submit-btn" onclick="resetCalendar()">続けて登録</button>'
-          + '<button class="close-btn" onclick="sendCompleteAndClose()">閉じる</button>'
+          + '<button class="close-btn" onclick="closePage()">閉じる</button>'
           + '</div>';
-
-        window.lastRegistration = {
-          shortName: shortName,
-          projectName: projectName,
-          price: price,
-          dates: dateLabels,
-          count: result.count
-        };
       } else {
         resultArea.innerHTML = '<div class="result">'
           + '<div class="icon">❌</div>'
@@ -264,47 +250,20 @@ function resetCalendar() {
   renderCalendar();
 }
 
-// 完了メッセージをLINEトークに送信してからLIFFを閉じる
-function sendCompleteAndClose() {
-  var reg = window.lastRegistration;
-  if (!reg) { closeLiff(); return; }
-
-  if (!window.liffReady) {
-    document.getElementById('resultArea').innerHTML = '<div class="loading"><div class="spinner"></div><p>送信準備中...</p></div>';
-    var waitCount = 0;
-    var waitTimer = setInterval(function() {
-      waitCount++;
-      if (window.liffReady) {
-        clearInterval(waitTimer);
-        doSendAndClose(reg);
-      } else if (waitCount > 30) {
-        clearInterval(waitTimer);
-        alert('LIFF接続がタイムアウトしました。画面を閉じてLINEで「メニュー」と入力してください。');
-        try { liff.closeWindow(); } catch(e) { window.close(); }
-      }
-    }, 500);
-    return;
-  }
-  doSendAndClose(reg);
-}
-
-function doSendAndClose(reg) {
-  var messageText = '一括登録完了:' + reg.shortName + ':' + reg.projectName + ':' + reg.price + ':' + reg.dates + ':' + reg.count;
-  liff.sendMessages([{
-    type: 'text',
-    text: messageText
-  }]).then(function() {
-    liff.closeWindow();
-  }).catch(function(err) {
-    alert('送信エラー: ' + err.message);
-    try { liff.closeWindow(); } catch(e) { window.close(); }
-  });
-}
-
-// LIFFを閉じる
-function closeLiff() {
-  try { liff.closeWindow(); } catch(e) { window.close(); }
+// ページを閉じる
+function closePage() {
+  window.close();
+  setTimeout(function() {
+    document.getElementById('resultArea').style.display = 'block';
+    document.getElementById('calendarArea').style.display = 'none';
+    document.getElementById('resultArea').innerHTML = '<div class="result">'
+      + '<div class="icon">✅</div>'
+      + '<div class="message">完了しました</div>'
+      + '<div class="detail">この画面を閉じてLINEに戻ってください</div>'
+      + '</div>';
+  }, 500);
 }
 </script>
+
 </body>
 </html>
