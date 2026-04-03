@@ -215,14 +215,6 @@ function submitDates() {
           + '<div class="detail">' + shortName + ' / ' + projectName + '<br>' + dateLabels + '</div>'
           + '<br><button class="submit-btn" onclick="resetCalendar()">続けて登録</button>'
           + '</div>';
-
-        window.lastRegistration = {
-          shortName: shortName,
-          projectName: projectName,
-          price: price,
-          dates: dateLabels,
-          count: result.count
-        };
       } else {
         resultArea.innerHTML = '<div class="result">'
           + '<div class="icon">❌</div>'
@@ -248,25 +240,6 @@ function resetCalendar() {
   document.getElementById('resultArea').style.display = 'none';
   document.getElementById('calendarArea').style.display = 'block';
   renderCalendar();
-}
-
-// 完了メッセージをLINEトークに送信して閉じる（LINE URLスキーム方式）
-function sendCompleteAndClose() {
-  var reg = window.lastRegistration;
-  if (!reg) { closePage(); return; }
-
-  // 完了情報テキストを作成
-  var messageText = '一括登録完了:' + reg.shortName + ':' + reg.projectName + ':' + reg.price + ':' + reg.dates + ':' + reg.count;
-
-  // LINE URLスキームでトーク画面を開き、テキストを自動入力
-  var lineUrl = 'https://line.me/R/oaMessage/@338iquzz/?' + encodeURIComponent(messageText);
-  // <a>タグを動的に作成してクリック（LIFFブラウザの制限回避）
-  var a = document.createElement('a');
-  a.href = lineUrl;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
 }
 
 // ページを閉じる
