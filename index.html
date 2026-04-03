@@ -1,10 +1,10 @@
 <!DOCTYPE html>
+
 <html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>案件一括登録</title>
-<script charset="utf-8" src="https://static.line-sdn.net/liff/edge/2/sdk.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #f5f5f5; color: #333; }
@@ -43,15 +43,20 @@ h1 { font-size: 18px; text-align: center; padding: 12px 0; color: #06c755; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .error-msg { text-align: center; padding: 32px; color: #e55; }
 </style>
+
 </head>
 <body>
 <div class="container">
   <h1>案件一括登録</h1>
 
+  <!-- 案件情報表示 -->
+
   <div class="info-bar">
     <div class="label">取引先 / 案件種別</div>
     <div class="value" id="projectInfo">読み込み中...</div>
   </div>
+
+  <!-- カレンダー画面 -->
 
   <div id="calendarArea">
     <div class="cal-header">
@@ -66,19 +71,14 @@ h1 { font-size: 18px; text-align: center; padding: 12px 0; color: #06c755; }
     <button class="close-btn" onclick="closePage()">閉じる</button>
   </div>
 
+  <!-- 結果画面 -->
+
   <div id="resultArea" style="display:none;"></div>
 </div>
 
 <script>
-// URLパラメータ取得（LIFF経由なら liff.state から復元）
-var rawSearch = window.location.search;
-if (rawSearch.indexOf('liff.state') >= 0) {
-  var liffState = new URLSearchParams(rawSearch).get('liff.state');
-  if (liffState) {
-    rawSearch = liffState;
-  }
-}
-var urlParams = new URLSearchParams(rawSearch);
+// URLパラメータから案件情報を取得
+var urlParams = new URLSearchParams(window.location.search);
 var shortName = urlParams.get('shortName') || '';
 var projectName = urlParams.get('projectName') || '';
 var price = urlParams.get('price') || '0';
@@ -88,50 +88,14 @@ var gasUrl = urlParams.get('gasUrl') || '';
 var selectedDates = [];
 var currentYear, currentMonth;
 
-// LIFF設定
-var LIFF_ID = '2009635998-soccgFA4';
-var liffReady = false;
-
-async function initLiffSafely() {
-  if (typeof liff === 'undefined') {
-    console.log('LIFF SDKが読み込まれていません');
-    liffReady = false;
-    return;
-  }
-
-  try {
-    await Promise.race([
-      liff.init({ liffId: LIFF_ID }),
-      new Promise(function(_, reject) {
-        setTimeout(function() {
-          reject(new Error('LIFF init timeout'));
-        }, 8000);
-      })
-    ]);
-
-    liffReady = true;
-    console.log('LIFF init success');
-    console.log('isInClient:', liff.isInClient());
-    console.log('sendMessages available:', liff.isApiAvailable('sendMessages'));
-  } catch (e) {
-    liffReady = false;
-    console.log('LIFF init failed:', e);
-  }
-}
-
 // 初期化
-window.onload = async function() {
-  await initLiffSafely();
-
+window.onload = function() {
   if (!shortName || !projectName || !gasUrl) {
     document.getElementById('projectInfo').textContent = 'エラー：案件情報がありません';
     document.getElementById('calendarArea').style.display = 'none';
     return;
   }
-
-  document.getElementById('projectInfo').textContent =
-    shortName + ' / ' + projectName + '（' + Number(price).toLocaleString() + '円）';
-
+  document.getElementById('projectInfo').textContent = shortName + ' / ' + projectName + '（' + Number(price).toLocaleString() + '円）';
   var now = new Date();
   currentYear = now.getFullYear();
   currentMonth = now.getMonth();
@@ -179,7 +143,6 @@ function renderCalendar() {
     })(dateStr, el);
     grid.appendChild(el);
   }
-
   updateSelectedDisplay();
 }
 
@@ -207,7 +170,7 @@ function updateSelectedDisplay() {
     datesEl.style.display = 'block';
     datesEl.innerHTML = selectedDates.map(function(d) {
       var parts = d.split('-');
-      return parseInt(parts[1], 10) + '/' + parseInt(parts[2], 10);
+      return parseInt(parts[1]) + '/' + parseInt(parts[2]);
     }).join('、');
   } else {
     datesEl.style.display = 'none';
@@ -225,10 +188,7 @@ function changeMonth(diff) {
 // GAS Web APIを呼んで一括登録
 function submitDates() {
   if (selectedDates.length === 0) return;
-
-  if (!confirm(shortName + ' / ' + projectName + '\n' + selectedDates.length + '件の予定を登録します。\nよろしいですか？')) {
-    return;
-  }
+  if (!confirm(shortName + ' / ' + projectName + '\n' + selectedDates.length + '件の予定を登録します。\nよろしいですか？')) return;
 
   document.getElementById('calendarArea').style.display = 'none';
   var resultArea = document.getElementById('resultArea');
@@ -246,7 +206,7 @@ function submitDates() {
       if (result.success) {
         var dateLabels = selectedDates.map(function(d) {
           var parts = d.split('-');
-          return parseInt(parts[1], 10) + '/' + parseInt(parts[2], 10);
+          return parseInt(parts[1]) + '/' + parseInt(parts[2]);
         }).join('、');
 
         resultArea.innerHTML = '<div class="result">'
@@ -254,7 +214,6 @@ function submitDates() {
           + '<div class="message">' + result.count + '件の予定を登録しました！</div>'
           + '<div class="detail">' + shortName + ' / ' + projectName + '<br>' + dateLabels + '</div>'
           + '<br><button class="submit-btn" onclick="resetCalendar()">続けて登録</button>'
-          + '<button class="close-btn" onclick="sendCompleteAndClose()">閉じる</button>'
           + '</div>';
 
         window.lastRegistration = {
@@ -291,66 +250,32 @@ function resetCalendar() {
   renderCalendar();
 }
 
-// 完了メッセージ送信
-async function sendCompleteAndClose() {
+// 完了メッセージをLINEトークに送信して閉じる（LINE URLスキーム方式）
+function sendCompleteAndClose() {
   var reg = window.lastRegistration;
-  if (!reg) {
-    closePage();
-    return;
-  }
+  if (!reg) { closePage(); return; }
 
-  var messageText =
-    '一括登録完了:' +
-    reg.shortName + ':' +
-    reg.projectName + ':' +
-    reg.price + ':' +
-    reg.dates + ':' +
-    reg.count;
+  // 完了情報テキストを作成
+  var messageText = '一括登録完了:' + reg.shortName + ':' + reg.projectName + ':' + reg.price + ':' + reg.dates + ':' + reg.count;
 
-  // まずLIFF送信を試す
-  if (
-    liffReady &&
-    typeof liff !== 'undefined' &&
-    liff.isInClient() &&
-    liff.isApiAvailable('sendMessages')
-  ) {
-    try {
-      await liff.sendMessages([
-        {
-          type: 'text',
-          text: messageText
-        }
-      ]);
-      closePage();
-      return;
-    } catch (e) {
-      console.log('liff.sendMessages failed:', e);
-    }
-  }
-
-  // 失敗したらURLスキームへフォールバック
+  // LINE URLスキームでトーク画面を開き、テキストを自動入力
   var lineUrl = 'https://line.me/R/oaMessage/@338iquzz/?' + encodeURIComponent(messageText);
-  window.location.href = lineUrl;
+  // <a>タグを動的に作成してクリック（LIFFブラウザの制限回避）
+  var a = document.createElement('a');
+  a.href = lineUrl;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 // ページを閉じる
 function closePage() {
-  try {
-    if (typeof liff !== 'undefined' && liff.isInClient()) {
-      liff.closeWindow();
-      return;
-    }
-  } catch (e) {
-    console.log('liff.closeWindow failed:', e);
-  }
-
   window.close();
-
   setTimeout(function() {
     document.getElementById('resultArea').style.display = 'block';
     document.getElementById('calendarArea').style.display = 'none';
-    document.getElementById('resultArea').innerHTML =
-      '<div class="result">'
+    document.getElementById('resultArea').innerHTML = '<div class="result">'
       + '<div class="icon">✅</div>'
       + '<div class="message">完了しました</div>'
       + '<div class="detail">この画面を閉じてLINEに戻ってください</div>'
@@ -358,5 +283,6 @@ function closePage() {
   }, 500);
 }
 </script>
+
 </body>
 </html>
