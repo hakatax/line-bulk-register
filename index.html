@@ -268,7 +268,13 @@ function sendCompleteAndClose() {
 
   // LINE URLスキームでトーク画面を開き、テキストを自動入力
   var lineUrl = 'https://line.me/R/oaMessage/@338iquzz/?' + encodeURIComponent(messageText);
-  window.location.href = lineUrl;
+  // <a>タグを動的に作成してクリック（LIFFブラウザの制限回避）
+  var a = document.createElement('a');
+  a.href = lineUrl;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 // ページを閉じる
