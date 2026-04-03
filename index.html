@@ -221,8 +221,16 @@ function submitDates() {
           + '<div class="message">' + result.count + '件の予定を登録しました！</div>'
           + '<div class="detail">' + shortName + ' / ' + projectName + '<br>' + dateLabels + '</div>'
           + '<br><button class="submit-btn" onclick="resetCalendar()">続けて登録</button>'
-          + '<button class="close-btn" onclick="closePage()">閉じる</button>'
+          + '<button class="close-btn" onclick="sendCompleteAndClose()">閉じる</button>'
           + '</div>';
+
+        window.lastRegistration = {
+          shortName: shortName,
+          projectName: projectName,
+          price: price,
+          dates: dateLabels,
+          count: result.count
+        };
       } else {
         resultArea.innerHTML = '<div class="result">'
           + '<div class="icon">❌</div>'
@@ -248,6 +256,19 @@ function resetCalendar() {
   document.getElementById('resultArea').style.display = 'none';
   document.getElementById('calendarArea').style.display = 'block';
   renderCalendar();
+}
+
+// 完了メッセージをLINEトークに送信して閉じる（LINE URLスキーム方式）
+function sendCompleteAndClose() {
+  var reg = window.lastRegistration;
+  if (!reg) { closePage(); return; }
+
+  // 完了情報テキストを作成
+  var messageText = '一括登録完了:' + reg.shortName + ':' + reg.projectName + ':' + reg.price + ':' + reg.dates + ':' + reg.count;
+
+  // LINE URLスキームでトーク画面を開き、テキストを自動入力
+  var lineUrl = 'https://line.me/R/oaMessage/@338iquzz/?' + encodeURIComponent(messageText);
+  window.location.href = lineUrl;
 }
 
 // ページを閉じる
