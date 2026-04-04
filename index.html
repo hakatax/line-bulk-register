@@ -86,6 +86,10 @@ if (rawSearch.indexOf('liff.state') >= 0) {
   }
 }
 var urlParams = new URLSearchParams(rawSearch);
+var shortName = urlParams.get('shortName') || '';
+var projectName = urlParams.get('projectName') || '';
+var price = urlParams.get('price') || '0';
+var gasUrl = urlParams.get('gasUrl') || '';
 
 // 状態管理
 var selectedDates = [];
