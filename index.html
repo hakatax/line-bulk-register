@@ -77,15 +77,8 @@ h1 { font-size: 18px; text-align: center; padding: 12px 0; color: #06c755; }
 </div>
 
 <script>
-// URLパラメータから案件情報を取得（LIFF経由の場合はliff.stateから復元）
-var rawSearch = window.location.search;
-if (rawSearch.indexOf('liff.state') >= 0) {
-  var liffState = new URLSearchParams(rawSearch).get('liff.state');
-  if (liffState) {
-    rawSearch = liffState;
-  }
-}
-var urlParams = new URLSearchParams(rawSearch);
+// URLパラメータから案件情報を取得
+var urlParams = new URLSearchParams(window.location.search);
 var shortName = urlParams.get('shortName') || '';
 var projectName = urlParams.get('projectName') || '';
 var price = urlParams.get('price') || '0';
@@ -220,7 +213,7 @@ function submitDates() {
           + '<div class="icon">✅</div>'
           + '<div class="message">' + result.count + '件の予定を登録しました！</div>'
           + '<div class="detail">' + shortName + ' / ' + projectName + '<br>' + dateLabels + '</div>'
-          + '<br><button class="submit-btn" onclick="resetCalendar()">続けて登録</button>'
+          + '<br><button class="close-btn" onclick="closePage()">閉じる</button>'
           + '</div>';
       } else {
         resultArea.innerHTML = '<div class="result">'
