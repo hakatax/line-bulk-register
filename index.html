@@ -90,6 +90,7 @@ var shortName = urlParams.get('shortName') || '';
 var projectName = urlParams.get('projectName') || '';
 var price = urlParams.get('price') || '0';
 var gasUrl = urlParams.get('gasUrl') || '';
+var apiKey = urlParams.get('key') || '';
 
 // 状態管理
 var selectedDates = [];
@@ -205,7 +206,8 @@ function submitDates() {
   var apiUrl = gasUrl + '?action=bulkRegister'
     + '&shortName=' + encodeURIComponent(shortName)
     + '&projectName=' + encodeURIComponent(projectName)
-    + '&dates=' + encodeURIComponent(selectedDates.join(','));
+    + '&dates=' + encodeURIComponent(selectedDates.join(','))
+    + '&key=' + encodeURIComponent(apiKey);
 
   fetch(apiUrl)
     .then(function(response) { return response.json(); })
